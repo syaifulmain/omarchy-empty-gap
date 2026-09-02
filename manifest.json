@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "syaifulmain.emptygap",
+  "name": "Empty Gap",
+  "version": "1.2.0",
+  "description": "Bar button + panel controlling an empty strip that reserves a damaged screen edge.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "Shim.qml",
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Empty Gap",
+    "description": "Reserve a damaged screen edge; edge, size, transparency, visibility controls",
+    "category": "Display",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
