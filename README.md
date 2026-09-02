@@ -36,7 +36,7 @@ The **Empty Gap** button panel contains:
 | Edge | Strip position: Top / Right / Bottom / Left |
 | Shim enabled | Show/hide the strip |
 | Transparent | Transparent strip or theme background |
-| Height | Strip height (slider 0–200, numeric input 0–400 px) |
+| Height | Strip height (slider 0–200, numeric input 0–400 px; 0 = strip present but reserves no space) |
 
 All values are stored in `~/.config/omarchy/shell.json`:
 
