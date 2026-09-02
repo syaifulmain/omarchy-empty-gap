@@ -23,9 +23,12 @@ Item {
   readonly property string shimEdge: ["top", "right", "bottom", "left"].indexOf(String(config.edge)) !== -1
     ? String(config.edge) : "top"
   readonly property bool horizontalEdge: shimEdge === "top" || shimEdge === "bottom"
+  // Shared normalization rule with Panel.qml: honor the documented 0-400
+  // range, including 0 (strip present but reserves no space). Invalid values
+  // fall back to the 40px default.
   readonly property int shimHeight: {
     var h = parseInt(config.height, 10)
-    return (h > 0 && h <= 400) ? h : 40
+    return (h >= 0 && h <= 400) ? h : 40
   }
 
   PanelWindow {
