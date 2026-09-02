@@ -5,7 +5,7 @@
 
 An [Omarchy](https://omarchy.org) shell plugin (Quickshell) that displays an **empty strip** along a screen edge to reserve a damaged monitor area — e.g. the dark strip at the top of a laptop with a cracked screen.
 
-![Preview](assets/preview.png)
+![Preview](preview.png)
 
 ## Features
 
