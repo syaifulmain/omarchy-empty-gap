@@ -3,11 +3,22 @@ import Quickshell
 import Quickshell.Wayland
 import qs.Commons
 
-// Empty strip that reserves a damaged area of the screen. Sits on one edge
-// (top / right / bottom / left, default top). State lives in shell.json under
+// Empty strips that reserve damaged areas of the screen, one per screen edge
+// (top / right / bottom / left). State lives in shell.json under
 // `syaifulmain.emptygap` via the syaifulmain.emptygap bar-widget panel and is read here
 // through the injected `shell.shellConfig`. Independent of the main bar's
 // own transparency and visibility settings.
+//
+// Config schema (per-edge, v2):
+//   {
+//     "enabled": true,                  // master switch for all strips
+//     "edges": {
+//       "top":    { "enabled": true, "height": 26, "transparent": true },
+//       "right":  { ... }, "bottom": { ... }, "left": { ... }
+//     }
+//   }
+// Legacy single-edge fields (`edge`, `height`, `transparent`, plus legacy
+// `enabled`) are migrated on read so old shell.json keeps working.
 Item {
   id: root
 
@@ -18,43 +29,85 @@ Item {
     ? shell.shellConfig["syaifulmain.emptygap"]
     : ({})
 
-  readonly property bool shimVisible: config.enabled !== false
-  readonly property bool shimTransparent: config.transparent === true
-  readonly property string shimEdge: ["top", "right", "bottom", "left"].indexOf(String(config.edge)) !== -1
-    ? String(config.edge) : "top"
-  readonly property bool horizontalEdge: shimEdge === "top" || shimEdge === "bottom"
+  readonly property bool masterEnabled: config.enabled !== false
+  readonly property var edges: normalizeEdges(config.edges, config)
+
   // Shared normalization rule with Panel.qml: honor the documented 0-400
   // range, including 0 (strip present but reserves no space). Invalid values
   // fall back to the 40px default.
-  readonly property int shimHeight: {
-    var h = parseInt(config.height, 10)
-    return (h >= 0 && h <= 400) ? h : 40
+  function clampHeight(v) {
+    var h = parseInt(v, 10)
+    if (isNaN(h)) h = 40
+    return Math.min(400, Math.max(0, h))
   }
 
-  PanelWindow {
-    visible: root.shimVisible
-    // Anchor the strip's edge plus both perpendicular ends so it stretches
-    // full length while keeping `shimHeight` thickness.
-    anchors.top: root.shimEdge !== "bottom"
-    anchors.bottom: root.shimEdge !== "top"
-    anchors.left: root.shimEdge !== "right"
-    anchors.right: root.shimEdge !== "left"
+  function normalizeEdgeMap(raw, legacyEdge, legacyHeight, legacyTransparent) {
+    var out = {}
+    var names = ["top", "right", "bottom", "left"]
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i]
+      var e = (raw && raw[name]) ? raw[name] : {}
+      out[name] = {
+        "enabled": e.enabled === true,
+        "height": clampHeight(e.height !== undefined ? e.height : 40),
+        "transparent": e.transparent === true
+      }
+    }
+    // One-time legacy migration: single-edge config -> per-edge map.
+    if (names.indexOf(String(legacyEdge)) !== -1 && !(raw && raw[String(legacyEdge)] && raw[String(legacyEdge)].enabled !== undefined)) {
+      out[String(legacyEdge)].enabled = true
+      if (legacyHeight !== undefined) out[String(legacyEdge)].height = clampHeight(legacyHeight)
+      if (legacyTransparent !== undefined) out[String(legacyEdge)].transparent = legacyTransparent === true
+    }
+    return out
+  }
 
-    implicitHeight: root.horizontalEdge ? root.shimHeight : 0
-    implicitWidth: root.horizontalEdge ? 0 : root.shimHeight
-    exclusiveZone: root.shimVisible ? root.shimHeight : -root.shimHeight
-    color: "transparent"
-    surfaceFormat.opaque: false
-    WlrLayershell.namespace: "syaifulmain-emptygap"
-    WlrLayershell.layer: WlrLayer.Bottom
+  function normalizeEdges(rawEdges, legacyConfig) {
+    return normalizeEdgeMap(
+      rawEdges,
+      legacyConfig ? legacyConfig.edge : undefined,
+      legacyConfig ? legacyConfig.height : undefined,
+      legacyConfig ? legacyConfig.transparent : undefined
+    )
+  }
 
-    Rectangle {
-      anchors.fill: parent
-      color: root.shimTransparent ? "transparent" : Color.bar.background
-      Behavior on color {
-        ColorAnimation {
-          duration: 420
-          easing.type: Easing.InOutQuad
+  readonly property bool anyActive: masterEnabled && (edges.top.enabled || edges.right.enabled || edges.bottom.enabled || edges.left.enabled)
+
+  Repeater {
+    model: ["top", "right", "bottom", "left"]
+
+    delegate: PanelWindow {
+      required property string modelData
+      readonly property string edgeName: modelData
+      readonly property var edgeConfig: root.edges[edgeName] || {}
+      readonly property bool active: root.masterEnabled && edgeConfig.enabled === true
+      readonly property int stripHeight: edgeConfig.height !== undefined ? edgeConfig.height : 40
+      readonly property bool horizontalEdge: edgeName === "top" || edgeName === "bottom"
+
+      visible: active
+      // Anchor the strip's edge plus both perpendicular ends so it stretches
+      // full length while keeping `stripHeight` thickness.
+      anchors.top: edgeName !== "bottom"
+      anchors.bottom: edgeName !== "top"
+      anchors.left: edgeName !== "right"
+      anchors.right: edgeName !== "left"
+
+      implicitHeight: horizontalEdge ? stripHeight : 0
+      implicitWidth: horizontalEdge ? 0 : stripHeight
+      exclusiveZone: active ? stripHeight : -stripHeight
+      color: "transparent"
+      surfaceFormat.opaque: false
+      WlrLayershell.namespace: "syaifulmain-emptygap"
+      WlrLayershell.layer: WlrLayer.Bottom
+
+      Rectangle {
+        anchors.fill: parent
+        color: edgeConfig.transparent === true ? "transparent" : Color.bar.background
+        Behavior on color {
+          ColorAnimation {
+            duration: 420
+            easing.type: Easing.InOutQuad
+          }
         }
       }
     }
