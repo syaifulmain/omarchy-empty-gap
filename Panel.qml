@@ -433,43 +433,46 @@ Panel {
     Variants {
       model: ["top", "right", "bottom", "left"]
 
-      delegate: Component {
-      PanelWindow {
-      required property string modelData
-      readonly property string edgeName: modelData
-      readonly property var edgeConfig: root.edges[edgeName] || {}
-      readonly property bool active: root.masterEnabled && edgeConfig.enabled === true
-      readonly property int stripHeight: edgeConfig.height !== undefined ? edgeConfig.height : 40
-      readonly property bool horizontalEdge: edgeName === "top" || edgeName === "bottom"
+      // One Loader per edge: a disabled edge creates no window at all.
+      // A hidden (visible: false) PanelWindow still owns a Wayland surface,
+      // scene graph and EGL buffer, so instantiating all four up front
+      // wastes memory for an idle plugin.
+      delegate: Loader {
+        id: edgeLoader
+        required property string modelData
+        readonly property string edgeName: modelData
+        readonly property var edgeConfig: root.edges[edgeName] || {}
+        active: root.masterEnabled && edgeConfig.enabled === true
 
-      visible: active
-      // Anchor the strip's edge plus both perpendicular ends so it stretches
-      // full length while keeping `stripHeight` thickness.
-      anchors.top: edgeName !== "bottom"
-      anchors.bottom: edgeName !== "top"
-      anchors.left: edgeName !== "right"
-      anchors.right: edgeName !== "left"
+        sourceComponent: Component {
+          PanelWindow {
+            readonly property string edgeName: edgeLoader.edgeName
+            readonly property var edgeConfig: edgeLoader.edgeConfig
+            readonly property bool horizontalEdge: edgeName === "top" || edgeName === "bottom"
+            readonly property int stripHeight: edgeConfig.height !== undefined ? edgeConfig.height : 40
 
-      implicitHeight: horizontalEdge ? stripHeight : 0
-      implicitWidth: horizontalEdge ? 0 : stripHeight
-      exclusiveZone: active ? stripHeight : -stripHeight
-      color: "transparent"
-      surfaceFormat.opaque: false
-      WlrLayershell.namespace: "syaifulmain-emptygap"
-      WlrLayershell.layer: WlrLayer.Bottom
+            // Anchor the strip's edge plus both perpendicular ends so it stretches
+            // full length while keeping `stripHeight` thickness.
+            anchors.top: edgeName !== "bottom"
+            anchors.bottom: edgeName !== "top"
+            anchors.left: edgeName !== "right"
+            anchors.right: edgeName !== "left"
 
-      Rectangle {
-        anchors.fill: parent
-        color: edgeConfig.transparent === true ? "transparent" : Color.bar.background
-        Behavior on color {
-          ColorAnimation {
-            duration: 420
-            easing.type: Easing.InOutQuad
+            implicitHeight: horizontalEdge ? stripHeight : 0
+            implicitWidth: horizontalEdge ? 0 : stripHeight
+            exclusiveZone: stripHeight
+            color: "transparent"
+            surfaceFormat.opaque: false
+            WlrLayershell.namespace: "syaifulmain-emptygap"
+            WlrLayershell.layer: WlrLayer.Bottom
+
+            Rectangle {
+              anchors.fill: parent
+              color: edgeConfig.transparent === true ? "transparent" : Color.bar.background
+            }
           }
         }
       }
-    }
-    }
     }
   }
 }

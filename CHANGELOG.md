@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.1 — Memory optimization
+
+- Strips are now created lazily: each edge is wrapped in a `Loader`, so a
+  disabled edge creates **no window at all**. Previously all four
+  `PanelWindow`s were instantiated up front and only hidden (`visible:
+  false`) — each hidden window still owns a Wayland surface, scene graph
+  and EGL buffer. With all edges off, the plugin now allocates zero strip
+  windows; with one edge on, exactly one.
+- Removed the idle `ColorAnimation` on strip windows (color changes only
+  happen on a settings toggle, which no longer needs a running animation
+  driver per window).
+
 ## 1.4.0 — Omarchy 4.x compatibility
 
 - Dual-host support: works on Omarchy 4.x and older releases.
