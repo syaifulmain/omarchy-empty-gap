@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.0 — Further footprint reduction
+## 0.5.0 — Further footprint reduction
 
 - The settings popup is now **lazy**: the screen cube, sliders and switches
   only exist while the panel is open. A closed panel costs nothing beyond
@@ -11,7 +11,7 @@
   coalesce into a single `shell.json` write per 250 ms burst instead of one
   write per tick.
 
-## 1.4.1 — Memory optimization
+## 0.4.1 — Memory optimization
 
 - Strips are now created lazily: each edge is wrapped in a `Loader`, so a
   disabled edge creates **no window at all**. Previously all four
@@ -23,7 +23,7 @@
   happen on a settings toggle, which no longer needs a running animation
   driver per window).
 
-## 1.4.0 — Omarchy 4.x compatibility
+## 0.4.0 — Omarchy 4.x compatibility
 
 - Dual-host support: works on Omarchy 4.x and older releases.
 - On 4.x, settings are read from the injected `settings` property (inline on
@@ -33,6 +33,6 @@
   rendered by the `service` entry point (`Shim.qml`), which stays inert on 4.x.
 - Added `barWidget.defaults` to the manifest.
 
-## 1.3.0
+## 0.3.0
 
 - Per-edge config map (`edges.top/right/bottom/left`) with legacy migration.

@@ -1,7 +1,7 @@
 # Empty Gap
 
 [![Omarchy](https://img.shields.io/badge/Omarchy-shell%20plugin-blueviolet)](https://omarchy.org)
-[![Version](https://img.shields.io/badge/version-1.5.0-green)]()
+[![Version](https://img.shields.io/badge/version-0.5.0-green)]()
 
 Requires **Omarchy 4.x** for inline settings. Older Omarchy releases are
 supported via the legacy top-level config key (see below).
