@@ -98,11 +98,11 @@ hyprctl layers | grep emptygap # strip is active
 
 ## Structure
 
-```
+```text
 manifest.json   # plugin metadata (id: syaifulmain.emptygap, kinds: service + bar-widget)
 Shim.qml        # service (pre-4.x hosts): one PanelWindow strip per enabled edge
 Panel.qml       # bar-widget: button + settings panel + strips (4.x) / dual-host config
-```text
+```
 
 ## Changelog
 
