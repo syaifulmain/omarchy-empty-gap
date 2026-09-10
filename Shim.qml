@@ -73,8 +73,21 @@ Item {
 
   readonly property bool anyActive: masterEnabled && (edges.top.enabled || edges.right.enabled || edges.bottom.enabled || edges.left.enabled)
 
-  Repeater {
-    model: ["top", "right", "bottom", "left"]
+  // Only active on pre-4.x hosts, which expose the full shell config through
+  // the injected `shell`. On Omarchy 4.x the bar widget (Panel.qml) renders
+  // the strips itself and this service stays unloaded.
+  readonly property bool legacyHost: shell && shell.shellConfig !== undefined
+
+  Loader {
+    active: root.legacyHost && root.anyActive
+    sourceComponent: legacyStrips
+  }
+
+  Component {
+    id: legacyStrips
+
+    Repeater {
+      model: ["top", "right", "bottom", "left"]
 
     delegate: PanelWindow {
       required property string modelData
@@ -110,6 +123,7 @@ Item {
           }
         }
       }
+    }
     }
   }
 }

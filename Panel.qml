@@ -2,29 +2,55 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Io
+import Quickshell.Wayland
 import qs.Ui
 import qs.Commons
 
-// Bar button + popup panel for the Empty Gap plugin. Minimal UI:
+// Bar button + popup panel for the Empty Gap plugin (Omarchy 4.x plugin API).
+// Minimal UI:
 //
 //   - A screen "cube" preview: the four outer sides are clickable and act
-//     as the per-edge enable toggles (top defaults to enabled). The cube is
-//     the only selection control; there is no separate enable switch.
+//     as the per-edge enable toggles. The cube is the only selection control;
+//     there is no separate enable switch.
 //   - Four identical configuration rows (top / right / bottom / left), each
 //     with: height slider, height number input, transparency toggle.
+//   - The empty strips themselves are rendered by the Variants below; the
+//     plugin no longer ships a separate service entry point because third-
+//     party services receive no settings and cannot read shell config.
 //
-// Settings persist to shell.json under `syaifulmain.emptygap` via
-// shell.mutateShellConfig, and Shim.qml renders the strips from the same
-// config.
+// Settings are inline on this widget's shell.json entry
+// (bar.layout entry { "id": "syaifulmain.emptygap", ... }) and are read from
+// the host-injected `settings` property. Writes go through
+// bar.shell.updateEntryInline(moduleName, settings), which replaces the
+// plugin's own entry — the only mutation the scoped facade allows.
+//
+// Settings schema (per-edge, v2):
+//   {
+//     "enabled": true,                  // master switch for all strips
+//     "edges": {
+//       "top":    { "enabled": true, "height": 26, "transparent": true },
+//       "right": { ... }, "bottom": { ... }, "left": { ... }
+//     }
+//   }
+// Legacy single-edge fields (`edge`, `height`, `transparent`) are migrated
+// on read so pre-2.0 entry settings keep working.
 Panel {
   id: root
   moduleName: "syaifulmain.emptygap"
   ipcTarget: "syaifulmain.emptygap"
 
   // ---- config helpers -------------------------------------------------
-  readonly property var shimConfig: bar && bar.shell && bar.shell.shellConfig && bar.shell.shellConfig["syaifulmain.emptygap"]
-    ? bar.shell.shellConfig["syaifulmain.emptygap"] : ({})
+  // Dual-host support:
+  //   - Omarchy 4.x injects inline entry settings via the `settings` property
+  //     (or leaves it empty when the entry has no settings yet).
+  //   - Older hosts expose the whole shell config through
+  //     `bar.shell.shellConfig` with this plugin's settings under a top-level
+  //     key. If neither surface has values, defaults apply.
+  readonly property var legacyConfig: bar && bar.shell && bar.shell.shellConfig
+    && bar.shell.shellConfig[moduleName] ? bar.shell.shellConfig[moduleName] : ({})
+  readonly property bool hasInlineSettings: typeof root.settings !== "undefined"
+    && root.settings && Object.keys(root.settings).length > 0
+  readonly property var shimConfig: hasInlineSettings ? settings : legacyConfig
 
   readonly property var edgeNames: ["top", "right", "bottom", "left"]
   readonly property bool masterEnabled: shimConfig.enabled !== false
@@ -54,22 +80,6 @@ Panel {
     return out
   }
 
-  function persist(mutator) {
-    if (!bar || !bar.shell || typeof bar.shell.mutateShellConfig !== "function") return
-    bar.shell.mutateShellConfig(function(config) {
-      if (!Util.isPlainObject(config["syaifulmain.emptygap"])) config["syaifulmain.emptygap"] = {}
-      mutator(config["syaifulmain.emptygap"])
-    })
-  }
-
-  function persistEdge(name, mutator) {
-    persist(function(c) {
-      if (!Util.isPlainObject(c.edges)) c.edges = {}
-      if (!Util.isPlainObject(c.edges[name])) c.edges[name] = { "enabled": false, "height": 40, "transparent": false }
-      mutator(c.edges[name])
-    })
-  }
-
   function clampHeight(v) {
     var h = parseInt(v, 10)
     if (isNaN(h)) h = 40
@@ -78,6 +88,45 @@ Panel {
 
   function edgeLabel(name) {
     return name.charAt(0).toUpperCase() + name.slice(1)
+  }
+
+  // Snapshot of the current settings as a plain entry object.
+  function currentSettings() {
+    var out = { "enabled": masterEnabled, "edges": {} }
+    for (var i = 0; i < edgeNames.length; i++) {
+      var name = edgeNames[i]
+      out.edges[name] = {
+        "enabled": edges[name].enabled,
+        "height": edges[name].height,
+        "transparent": edges[name].transparent
+      }
+    }
+    return out
+  }
+
+  function persist(mutator) {
+    if (!bar || !bar.shell) return
+    var next = currentSettings()
+    mutator(next)
+    // Omarchy 4.x: replace this plugin's own bar-layout entry. Older hosts:
+    // write the top-level <moduleName> key through the shell mutator.
+    if (typeof bar.shell.updateEntryInline === "function") {
+      bar.shell.updateEntryInline(moduleName, next)
+    } else if (typeof bar.shell.mutateShellConfig === "function") {
+      bar.shell.mutateShellConfig(function(config) {
+        config[moduleName] = next
+      })
+    }
+  }
+
+  function persistEdge(name, mutator) {
+    persist(function(c) {
+      if (!c.edges || !c.edges[name]) {
+        if (!c.edges) c.edges = {}
+        c.edges[name] = { "enabled": false, "height": 40, "transparent": false }
+      }
+      mutator(c.edges[name])
+    })
   }
 
   // ---------- bar button ----------------------------------------------
@@ -363,6 +412,64 @@ Panel {
         }
       }
       }
+    }
+  }
+
+  // ---------- empty strips ---------------------------------------------
+  // Only rendered on Omarchy 4.x hosts (detected via the scoped facade's
+  // updateEntryInline). Pre-4.x hosts render the strips from Shim.qml, so
+  // creating them here too would stack two exclusive zones per edge.
+  readonly property bool newHost: bar && bar.shell
+    && typeof bar.shell.updateEntryInline === "function"
+
+  Loader {
+    active: root.newHost
+    sourceComponent: stripVariants
+  }
+
+  Component {
+    id: stripVariants
+
+    Variants {
+      model: ["top", "right", "bottom", "left"]
+
+      delegate: Component {
+      PanelWindow {
+      required property string modelData
+      readonly property string edgeName: modelData
+      readonly property var edgeConfig: root.edges[edgeName] || {}
+      readonly property bool active: root.masterEnabled && edgeConfig.enabled === true
+      readonly property int stripHeight: edgeConfig.height !== undefined ? edgeConfig.height : 40
+      readonly property bool horizontalEdge: edgeName === "top" || edgeName === "bottom"
+
+      visible: active
+      // Anchor the strip's edge plus both perpendicular ends so it stretches
+      // full length while keeping `stripHeight` thickness.
+      anchors.top: edgeName !== "bottom"
+      anchors.bottom: edgeName !== "top"
+      anchors.left: edgeName !== "right"
+      anchors.right: edgeName !== "left"
+
+      implicitHeight: horizontalEdge ? stripHeight : 0
+      implicitWidth: horizontalEdge ? 0 : stripHeight
+      exclusiveZone: active ? stripHeight : -stripHeight
+      color: "transparent"
+      surfaceFormat.opaque: false
+      WlrLayershell.namespace: "syaifulmain-emptygap"
+      WlrLayershell.layer: WlrLayer.Bottom
+
+      Rectangle {
+        anchors.fill: parent
+        color: edgeConfig.transparent === true ? "transparent" : Color.bar.background
+        Behavior on color {
+          ColorAnimation {
+            duration: 420
+            easing.type: Easing.InOutQuad
+          }
+        }
+      }
+    }
+    }
     }
   }
 }

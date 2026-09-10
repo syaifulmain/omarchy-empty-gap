@@ -1,17 +1,15 @@
 # Changelog
 
-## 1.2.0
+## 1.4.0 — Omarchy 4.x compatibility
 
-- Rename to **Empty Gap** (`saep.topshim` → `saep.emptygap`).
-- Strip can be placed on any edge: top, right, bottom, left (edge selector in panel).
-- Strip now claims the screen edge *before* the Omarchy bar (`WlrLayer.Bottom`),
-  so a same-edge bar stays visible inside/below the strip instead of being pushed out.
-- Panel: scrollable content, larger height slider, numeric height input (0–400 px).
+- Dual-host support: works on Omarchy 4.x and older releases.
+- On 4.x, settings are read from the injected `settings` property (inline on
+  the `bar.layout` entry) and written via `shell.updateEntryInline`.
+- On older hosts, settings are read from the top-level `syaifulmain.emptygap`
+  key in shell.json and written via `shell.mutateShellConfig`; the strips are
+  rendered by the `service` entry point (`Shim.qml`), which stays inert on 4.x.
+- Added `barWidget.defaults` to the manifest.
 
-## 1.1.0
+## 1.3.0
 
-- Edge selector (initial multi-edge support).
-
-## 1.0.0
-
-- Initial release: top strip with height, transparency, and visibility controls.
+- Per-edge config map (`edges.top/right/bottom/left`) with legacy migration.

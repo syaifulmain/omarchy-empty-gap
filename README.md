@@ -1,7 +1,10 @@
 # Empty Gap
 
 [![Omarchy](https://img.shields.io/badge/Omarchy-shell%20plugin-blueviolet)](https://omarchy.org)
-[![Version](https://img.shields.io/badge/version-1.3.0-green)]()
+[![Version](https://img.shields.io/badge/version-1.4.0-green)]()
+
+Requires **Omarchy 4.x** for inline settings. Older Omarchy releases are
+supported via the legacy top-level config key (see below).
 
 An [Omarchy](https://omarchy.org) shell plugin (Quickshell) that displays **empty strips** along one or more screen edges (up to all four) to reserve damaged monitor areas — e.g. the dark strip at the top of a laptop with a cracked screen.
 
@@ -39,21 +42,45 @@ The **Empty Gap** button panel contains:
 | Per-edge row: input | Exact height (0–400 px; 0 = no space reserved) |
 | Per-edge row: switch | Transparent strip or theme background |
 
-All values are stored in `~/.config/omarchy/shell.json`:
+All values are stored inline on the widget entry in `~/.config/omarchy/shell.json`:
 
 ```json
-"syaifulmain.emptygap": {
-  "enabled": true,
-  "edges": {
-    "top":    { "enabled": true,  "height": 26,  "transparent": true  },
-    "right":  { "enabled": false, "height": 40,  "transparent": false },
-    "bottom": { "enabled": false, "height": 40,  "transparent": false },
-    "left":   { "enabled": false, "height": 40,  "transparent": false }
+"bar": {
+  "layout": {
+    "right": [
+      {
+        "id": "syaifulmain.emptygap",
+        "enabled": true,
+        "edges": {
+          "top":    { "enabled": true,  "height": 26,  "transparent": true  },
+          "right":  { "enabled": false, "height": 40,  "transparent": false },
+          "bottom": { "enabled": false, "height": 40,  "transparent": false },
+          "left":   { "enabled": false, "height": 40,  "transparent": false }
+        }
+      }
+    ]
   }
 }
 ```
 
-Legacy single-edge configs (`"edge"`, `"height"`, `"transparent"`) are migrated automatically.
+## Compatibility
+
+Works on both Omarchy 4.x and older releases:
+
+- **Omarchy 4.x**: settings are stored inline on the widget entry in
+  `bar.layout` (see the example above) and are written through
+  `shell.updateEntryInline`.
+- **Older Omarchy**: settings live under a top-level `syaifulmain.emptygap`
+  key in shell.json and are written through `shell.mutateShellConfig`; the
+  strips are rendered by the `service` entry point (`Shim.qml`), which is
+  inert on 4.x.
+- **Upgrading Omarchy from an old release with this plugin installed**: the
+  legacy top-level key is no longer readable on 4.x, so strips stay off until
+  you open the Empty Gap panel once and toggle an edge — the settings are
+  then written inline on the widget entry and persist from there.
+
+Legacy single-edge configs (`"edge"`, `"height"`, `"transparent"`) are
+migrated automatically on read.
 
 ## How it works
 
@@ -73,9 +100,13 @@ hyprctl layers | grep emptygap # strip is active
 
 ```
 manifest.json   # plugin metadata (id: syaifulmain.emptygap, kinds: service + bar-widget)
-Shim.qml        # service: one PanelWindow strip per enabled screen edge
-Panel.qml       # bar-widget: button + scrollable settings panel
-```
+Shim.qml        # service (pre-4.x hosts): one PanelWindow strip per enabled edge
+Panel.qml       # bar-widget: button + settings panel + strips (4.x) / dual-host config
+```text
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

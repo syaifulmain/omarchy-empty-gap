@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "syaifulmain.emptygap",
   "name": "Empty Gap",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "author": "Muhamad Syaifullah",
   "description": "Bar button + panel controlling an empty strip that reserves a damaged screen edge.",
   "kinds": [
@@ -18,6 +18,15 @@
     "description": "Reserve a damaged screen edge; edge, size, transparency, visibility controls",
     "category": "Display",
     "allowMultiple": false,
-    "defaultSection": "right"
+    "defaultSection": "right",
+    "defaults": {
+      "enabled": true,
+      "edges": {
+        "top": { "enabled": false, "height": 40, "transparent": false },
+        "right": { "enabled": false, "height": 40, "transparent": false },
+        "bottom": { "enabled": false, "height": 40, "transparent": false },
+        "left": { "enabled": false, "height": 40, "transparent": false }
+      }
+    }
   }
 }
