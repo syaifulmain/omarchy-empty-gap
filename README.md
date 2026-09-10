@@ -30,6 +30,27 @@ During the interactive install, pick the bar section for the button (default: *r
 
 Once installed, the 󱢊 icon button appears on the bar. Click it to open the settings panel.
 
+## Update
+
+Pull the latest version from the repository:
+
+```bash
+omarchy plugin update syaifulmain.emptygap --yes
+```
+
+Then reload the shell so the new code takes effect (e.g. log out and back
+in, or restart the shell).
+
+## Remove
+
+```bash
+omarchy plugin remove syaifulmain.emptygap --yes
+```
+
+This deletes the plugin from `~/.config/omarchy/plugins/` and removes its
+entry from the bar layout. Any strips currently on screen disappear after
+the shell reloads.
+
 ## Usage
 
 The **Empty Gap** button panel contains:
