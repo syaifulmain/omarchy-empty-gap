@@ -117,15 +117,12 @@ Item {
             implicitHeight: horizontalEdge ? stripHeight : 0
             implicitWidth: horizontalEdge ? 0 : stripHeight
             exclusiveZone: stripHeight
-            color: "transparent"
+            // The window clear color IS the strip — no child items needed,
+            // so a transparent strip renders an empty scene graph.
+            color: edgeConfig.transparent === true ? "transparent" : Color.bar.background
             surfaceFormat.opaque: false
             WlrLayershell.namespace: "syaifulmain-emptygap"
             WlrLayershell.layer: WlrLayer.Bottom
-
-            Rectangle {
-              anchors.fill: parent
-              color: edgeConfig.transparent === true ? "transparent" : Color.bar.background
-            }
           }
         }
       }

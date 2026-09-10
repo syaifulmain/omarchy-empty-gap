@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "syaifulmain.emptygap",
   "name": "Empty Gap",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "author": "Muhamad Syaifullah",
   "description": "Bar button + panel controlling an empty strip that reserves a damaged screen edge.",
   "kinds": [

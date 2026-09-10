@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.5.0 — Further footprint reduction
+
+- The settings popup is now **lazy**: the screen cube, sliders and switches
+  only exist while the panel is open. A closed panel costs nothing beyond
+  the bar button.
+- Strip windows render with no child items — the window clear color is the
+  strip itself, so a transparent strip has an empty scene graph.
+- Slider drags and number-field typing are **debounced**: rapid changes
+  coalesce into a single `shell.json` write per 250 ms burst instead of one
+  write per tick.
+
 ## 1.4.1 — Memory optimization
 
 - Strips are now created lazily: each edge is wrapped in a `Loader`, so a

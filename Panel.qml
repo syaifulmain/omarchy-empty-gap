@@ -129,6 +129,39 @@ Panel {
     })
   }
 
+  // Debounced persistence for high-frequency edits (slider drags, number
+  // typing): rapid changes coalesce into one shell.json write per burst
+  // instead of one write per tick.
+  property var _pendingHeights: ({})
+  Timer {
+    id: heightFlushTimer
+    interval: 250
+    onTriggered: root.flushPendingHeights()
+  }
+
+  function queueHeight(name, value) {
+    var next = {}
+    for (var k in _pendingHeights) next[k] = _pendingHeights[k]
+    next[name] = value
+    _pendingHeights = next
+    heightFlushTimer.restart()
+  }
+
+  function flushPendingHeights() {
+    var names = Object.keys(_pendingHeights)
+    if (!names.length) return
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i]
+      var value = _pendingHeights[name]
+      if (value !== undefined && value !== edges[name].height) {
+        persistEdge(name, (function(eName, h) {
+          return function(e) { e.height = h }
+        })(name, value))
+      }
+    }
+    _pendingHeights = ({})
+  }
+
   // ---------- bar button ----------------------------------------------
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
@@ -151,15 +184,26 @@ Panel {
     bar: root.bar
     open: root.opened
     contentWidth: panel.fittedContentWidth(Style.space(360))
-    contentHeight: panel.fittedContentHeight(panelColumn.implicitHeight, Style.space(620))
+    // Panel body is created lazily (Loader below): the cube, sliders and
+    // switches only exist while the popup is open, so a closed panel costs
+    // nothing beyond the bar button.
+    contentHeight: panel.fittedContentHeight(
+      panelBody.active && panelBody.item ? panelBody.item.implicitHeight : Style.space(620))
 
     ScrollView {
       id: scrollArea
       anchors.fill: parent
       clip: true
       ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-      ScrollBar.vertical.policy: panelColumn.implicitHeight > height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+      ScrollBar.vertical.policy: panelBody.active && panelBody.item
+        && panelBody.item.implicitHeight > height ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
 
+      // Lazy panel body: instantiated on open, destroyed on close.
+      Loader {
+        id: panelBody
+        width: scrollArea.availableWidth
+        active: root.opened || panel.visible
+        sourceComponent: Component {
       Column {
       id: panelColumn
       width: scrollArea.availableWidth
@@ -343,22 +387,20 @@ Panel {
                 integer: true
                 value: edgeConfig.height
                 onMoved: function(v) {
-                  if (v !== edgeConfig.height) {
-                    root.persistEdge(edgeName, function(e) { e.height = v })
-                  }
+                  if (v !== edgeConfig.height) root.queueHeight(edgeName, v)
                 }
                 onReleased: function(v) {
-                  if (v !== edgeConfig.height) {
-                    root.persistEdge(edgeName, function(e) { e.height = v })
-                  }
+                  if (v !== edgeConfig.height) root.queueHeight(edgeName, v)
+                  root.flushPendingHeights()
                 }
 
-                // Track outside edits (e.g. manual shell.json edits).
+                // Track outside edits (e.g. manual shell.json edits); hold off
+                // while a drag or a debounced write is in flight.
                 Binding {
                   target: heightSlider
                   property: "value"
                   value: edgeConfig.height
-                  when: !heightSlider.dragging
+                  when: !heightSlider.dragging && root._pendingHeights[edgeName] === undefined
                 }
               }
             }
@@ -375,9 +417,7 @@ Panel {
               Layout.alignment: Qt.AlignVCenter
               enabled: edgeConfig.enabled
               onModified: function(v) {
-                if (v !== edgeConfig.height) {
-                  root.persistEdge(edgeName, function(e) { e.height = v })
-                }
+                if (v !== edgeConfig.height) root.queueHeight(edgeName, v)
               }
             }
 
@@ -410,6 +450,8 @@ Panel {
             }
           }
         }
+      }
+      }
       }
       }
     }
@@ -461,15 +503,12 @@ Panel {
             implicitHeight: horizontalEdge ? stripHeight : 0
             implicitWidth: horizontalEdge ? 0 : stripHeight
             exclusiveZone: stripHeight
-            color: "transparent"
+            // The window clear color IS the strip — no child items needed,
+            // so a transparent strip renders an empty scene graph.
+            color: edgeConfig.transparent === true ? "transparent" : Color.bar.background
             surfaceFormat.opaque: false
             WlrLayershell.namespace: "syaifulmain-emptygap"
             WlrLayershell.layer: WlrLayer.Bottom
-
-            Rectangle {
-              anchors.fill: parent
-              color: edgeConfig.transparent === true ? "transparent" : Color.bar.background
-            }
           }
         }
       }
