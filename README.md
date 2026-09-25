@@ -1,7 +1,7 @@
 # Empty Gap
 
 [![Omarchy](https://img.shields.io/badge/Omarchy-shell%20plugin-blueviolet)](https://omarchy.org)
-[![Version](https://img.shields.io/badge/version-0.5.0-green)]()
+[![Version](https://img.shields.io/badge/version-0.6.0-green)]()
 
 Requires **Omarchy 4.x** for inline settings. Older Omarchy releases are
 supported via the legacy top-level config key (see below).
@@ -12,6 +12,7 @@ An [Omarchy](https://omarchy.org) shell plugin (Quickshell) that displays **empt
 
 ## Features
 
+- **Bar icon controls**: left click opens the settings panel, right click turns every strip on/off at once, scroll up turns them on and scroll down turns them off.
 - **All four edges**: reserve **Top / Right / Bottom / Left** simultaneously — each edge has its own height and transparency.
 - **Screen cube picker**: click the sides of the preview cube in the panel to toggle each edge; a master switch in the middle turns the whole plugin on/off.
 - **Any height**: 0–400 px per edge, via a slider or exact numeric input.
@@ -28,7 +29,16 @@ omarchy plugin add https://github.com/syaifulmain/omarchy-empty-gap.git --enable
 
 During the interactive install, pick the bar section for the button (default: *right*).
 
-Once installed, the 󱢊 icon button appears on the bar. Click it to open the settings panel.
+Once installed, the 󱢊 icon button appears on the bar:
+
+| Input | Action |
+| --- | --- |
+| Left click | Open the settings panel |
+| Right click | Toggle all strips on/off |
+| Scroll up | Turn all strips on |
+| Scroll down | Turn all strips off |
+
+The icon shows 󱢊 when the master switch is on and 󱢋 when it is off.
 
 ## Update
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0 — Bar icon controls
+
+- **Left click** opens the settings popup.
+- **Right click** toggles the master switch: all strips on/off at once.
+- **Scroll up** turns all strips on; **scroll down** turns them off. The
+  wheel is absolute, so it does not toggle when you keep scrolling the same
+  way.
+- Master changes made from the bar icon are written through the same
+  `shell.json` path as the panel controls, so per-edge settings persist.
+
 ## 0.5.0 — Further footprint reduction
 
 - The settings popup is now **lazy**: the screen cube, sliders and switches

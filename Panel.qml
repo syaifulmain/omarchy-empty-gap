@@ -104,6 +104,14 @@ Panel {
     return out
   }
 
+  // Master writes (bar-button right click / mouse wheel) share this path:
+  // every state change goes through the same shell.json writer, so the
+  // config entry stays the single source of truth. Re-persisting the current
+  // state is idempotent — same JSON, no error.
+  function setMasterEnabled(value) {
+    persist(function(c) { c.enabled = value === true })
+  }
+
   function persist(mutator) {
     if (!bar || !bar.shell) return
     var next = currentSettings()
@@ -173,7 +181,20 @@ Panel {
     // Nerd Font glyph: a rectangle with a top bar, reads as "top strip".
     text: root.masterEnabled ? "󱢊" : "󱢋"
     tooltipText: "Empty Gap"
-    onPressed: function(b) { root.toggle() }
+    // Left click opens the settings panel; right click toggles every strip
+    // at once. Middle click is deliberately ignored.
+    onPressed: function(b) {
+      if (b === Qt.LeftButton) {
+        root.toggle()
+      } else if (b === Qt.RightButton) {
+        root.setMasterEnabled(!root.masterEnabled)
+      }
+    }
+    // Wheel is absolute: up turns every strip on, down turns them off.
+    onWheelMoved: function(delta) {
+      if (delta > 0) root.setMasterEnabled(true)
+      else if (delta < 0) root.setMasterEnabled(false)
+    }
   }
 
   // ---------- popup panel ----------------------------------------------
